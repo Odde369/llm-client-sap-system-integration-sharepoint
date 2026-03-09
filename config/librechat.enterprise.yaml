@@ -21,19 +21,21 @@ mcpSettings:
   allowedDomains:
     - 'sap-docs-mcp'
     - 'vsp-mcp'
+    - 'sap'
+    - 'docs'
 
 mcpServers:
-  sap-docs:
+  docs:
     type: streamable-http
     url: 'http://sap-docs-mcp:3122/mcp'
     chatMenu: true
-    startup: true
+    startup: false
 
-  sap-dev-adt:
+  sap:
     type: streamable-http
     url: 'http://vsp-mcp:3000/mcp'
     chatMenu: true
-    startup: true
+    startup: false
 
 
 fileConfig:
@@ -53,11 +55,24 @@ endpoints:
         # models that are actually pulled. Set fetch: false and list specific
         # model names here to restrict which models users can choose from.
         fetch: true
-        default: ["llama3.1:8b"]
+        default: ["llama3.1:70b"]
       titleConvo: true
       titleModel: "current_model"
       summarize: false
       forcePrompt: false
       modelDisplayLabel: "Ollama"
+    - name: "Groq"
+      apiKey: "${GROQ_API_KEY}"
+      baseURL: "https://api.groq.com/openai/v1"
+      models:
+        default: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
+        fetch: true
+      dropInvalidParams: true
+      titleConvo: true
+      titleModel: "current_model"
+      summarize: false
+      forcePrompt: false
+      modelDisplayLabel: "Groq"
+      promptPrefix: "CRITICAL INSTRUCTION FOR TOOL CALLS: 1) JSON Types: If a parameter is a number, output it as a raw JSON number (e.g. 10), NEVER a string. 2) String Validation: Never pass 'null' for string parameters; use an empty string (\"\") instead. 3) Tool Names: Use the EXACT tool names provided in the tool list (e.g. including the _mcp_ suffix). Failure to follow these rules will crash the system."
   agents:
     disableBuilder: false

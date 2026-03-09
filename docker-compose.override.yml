@@ -65,7 +65,7 @@ services:
       - MCP_PROXY_PORT=3000
       - VSP_MODE=focused
       - SAP_READ_ONLY=true
-      - VSP_EXTRA_ARGS=--block-free-sql --transport-read-only --disabled-groups debugger
+      - VSP_EXTRA_ARGS=--block-free-sql --transport-read-only --disabled-groups debugger,install,write,abapgit,git,amdp,cts,test
     restart: unless-stopped
     ports:
       - "3130:3000"
