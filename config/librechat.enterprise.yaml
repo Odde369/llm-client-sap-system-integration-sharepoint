@@ -14,29 +14,28 @@ interface:
     public: false
 
 registration:
-  socialLogins: ['openid']
+  socialLogins: ["openid"]
 
 mcpSettings:
   # Allow internal Docker MCP servers (SSRF protection is strict when configured)
   allowedDomains:
-    - 'sap-docs-mcp'
-    - 'vsp-mcp'
-    - 'sap'
-    - 'docs'
+    - "sap-docs-mcp"
+    - "vsp-mcp"
+    - "sap"
+    - "docs"
 
 mcpServers:
   docs:
     type: streamable-http
-    url: 'http://sap-docs-mcp:3122/mcp'
+    url: "http://sap-docs-mcp:3122/mcp"
     chatMenu: true
     startup: false
 
   sap:
     type: streamable-http
-    url: 'http://vsp-mcp:3000/mcp'
+    url: "http://vsp-mcp:3000/mcp"
     chatMenu: true
     startup: false
-
 
 fileConfig:
   serverFileSizeLimit: 25
@@ -65,7 +64,12 @@ endpoints:
       apiKey: "${GROQ_API_KEY}"
       baseURL: "https://api.groq.com/openai/v1"
       models:
-        default: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
+        default:
+          [
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+            "mixtral-8x7b-32768",
+          ]
         fetch: true
       dropInvalidParams: true
       titleConvo: true
@@ -73,6 +77,18 @@ endpoints:
       summarize: false
       forcePrompt: false
       modelDisplayLabel: "Groq"
-      promptPrefix: "CRITICAL INSTRUCTION FOR TOOL CALLS: 1) JSON Types: If a parameter is a number, output it as a raw JSON number (e.g. 10), NEVER a string. 2) String Validation: Never pass 'null' for string parameters; use an empty string (\"\") instead. 3) Tool Names: Use the EXACT tool names provided in the tool list (e.g. including the _mcp_ suffix). Failure to follow these rules will crash the system."
+      promptPrefix: 'CRITICAL INSTRUCTION FOR TOOL CALLS: 1) JSON Types: If a parameter is a number, output it as a raw JSON number (e.g. 10), NEVER a string. 2) String Validation: Never pass ''null'' for string parameters; use an empty string ("") instead. 3) Tool Names: Use the EXACT tool names provided in the tool list (e.g. including the _mcp_ suffix). Failure to follow these rules will crash the system.'
+    - name: "Ollama Cloud"
+      apiKey: "${OLLAMA_CLOUD_API_KEY}"
+      baseURL: "https://ollama.com/v1"
+      models:
+        # fetch: true erst aktivieren, wenn OLLAMA_CLOUD_API_KEY gesetzt ist
+        fetch: false
+        default: ["gpt-oss:120b", "deepseek-v3.1:671b-cloud"]
+      titleConvo: true
+      titleModel: "current_model"
+      summarize: false
+      forcePrompt: false
+      modelDisplayLabel: "Ollama Cloud"
   agents:
     disableBuilder: false
