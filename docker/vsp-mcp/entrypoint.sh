@@ -5,6 +5,8 @@ set -eu
 # Option A: Mount the config as a volume: ./wg/wg0.conf:/etc/wireguard/wg0.conf:ro
 # Option B: Set WG_CONF_B64 env var (base64-encoded wg0.conf contents)
 #           Generate with: base64 -w0 wg/wg0.conf
+# Note:     Remove the DNS line from the config — DNS is set manually
+#           below to avoid a resolvconf dependency.
 WG_CONF="/etc/wireguard/wg0.conf"
 
 # Write WG config from env if not mounted
@@ -18,6 +20,14 @@ fi
 if [ -f "$WG_CONF" ]; then
   echo "[wireguard] Config found at $WG_CONF — bringing up wg0..."
   wg-quick up wg0
+  # Set DNS manually (avoids resolvconf dependency)
+  if [ -n "${WG_DNS:-}" ]; then
+    echo "nameserver $WG_DNS" > /etc/resolv.conf
+    echo "[wireguard] DNS set to $WG_DNS"
+  else
+    echo "nameserver 192.168.126.4" > /etc/resolv.conf
+    echo "[wireguard] DNS set to 192.168.126.4 (default)"
+  fi
   echo "[wireguard] Tunnel active. Interface:"
   wg show wg0
   echo "[wireguard] Routes:"
