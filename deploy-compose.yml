@@ -90,6 +90,8 @@ services:
       context: ./docker/vsp-mcp
     cap_add:
       - NET_ADMIN
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
     environment:
       - SAP_URL=${SAP_URL}
       - SAP_USER=${SAP_TECH_USER}
@@ -100,6 +102,8 @@ services:
       - VSP_MODE=focused
       - SAP_READ_ONLY=true
       - VSP_EXTRA_ARGS=--block-free-sql --transport-read-only --disabled-groups debugger
+    volumes:
+      - ./wg/wg0.conf:/etc/wireguard/wg0.conf:ro
     restart: unless-stopped
     ports:
       - 3130:3000

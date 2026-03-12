@@ -16,7 +16,7 @@ RUN go build -o /out/vsp ./cmd/vsp
 FROM node:20-bookworm-slim
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends iptables ca-certificates \
+  && apt-get install -y --no-install-recommends iptables ca-certificates wireguard-tools iproute2 \
   && rm -rf /var/lib/apt/lists/* \
   && npm install -g mcp-proxy@latest
 
@@ -27,10 +27,7 @@ RUN chmod +x /entrypoint.sh
 
 ENV MCP_PROXY_PORT=3000
 ENV VSP_MODE=focused
-# ENV VSP_EXTRA_ARGS="--disabled-groups report,cts,install,git"
 ENV VSP_EGRESS_LOCKDOWN=true
-# Block all write operations by default; override with SAP_READ_ONLY=false to allow writes
-# ENV SAP_READ_ONLY=true
 
 EXPOSE 3000
 

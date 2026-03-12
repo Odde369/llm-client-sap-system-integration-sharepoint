@@ -1,6 +1,22 @@
 #!/bin/sh
 set -eu
 
+# ─── Wireguard Tunnel ────────────────────────────────────────────────
+# If a Wireguard config is mounted, bring up the tunnel before anything else.
+# Mount the config as a volume: ./wg/wg0.conf:/etc/wireguard/wg0.conf:ro
+WG_CONF="/etc/wireguard/wg0.conf"
+if [ -f "$WG_CONF" ]; then
+  echo "[wireguard] Config found at $WG_CONF — bringing up wg0..."
+  wg-quick up wg0
+  echo "[wireguard] Tunnel active. Interface:"
+  wg show wg0
+  echo "[wireguard] Routes:"
+  ip route | grep wg0 || true
+else
+  echo "[wireguard] No config at $WG_CONF — skipping tunnel setup."
+fi
+# ─────────────────────────────────────────────────────────────────────
+
 if [ -z "${SAP_URL:-}" ]; then
   echo "SAP_URL is required"
   exit 1
@@ -38,6 +54,17 @@ if [ "${VSP_EGRESS_LOCKDOWN:-true}" = "true" ]; then
   iptables -A OUTPUT -o lo -j ACCEPT
   iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   iptables -A OUTPUT -p tcp -d "$SAP_IP" --dport "$SAP_PORT" -j ACCEPT
+  # Allow Wireguard UDP traffic to endpoint if tunnel is active
+  if [ -f "$WG_CONF" ]; then
+    WG_ENDPOINT_IP="$(grep -oP 'Endpoint\s*=\s*\K[^:]+' "$WG_CONF" || true)"
+    WG_ENDPOINT_PORT="$(grep -oP 'Endpoint\s*=\s*[^:]+:\K\d+' "$WG_CONF" || true)"
+    if [ -n "$WG_ENDPOINT_IP" ] && [ -n "$WG_ENDPOINT_PORT" ]; then
+      iptables -A OUTPUT -p udp -d "$WG_ENDPOINT_IP" --dport "$WG_ENDPOINT_PORT" -j ACCEPT
+      echo "[wireguard] Egress rule added for endpoint $WG_ENDPOINT_IP:$WG_ENDPOINT_PORT"
+    fi
+    # Allow traffic through the wg0 interface
+    iptables -A OUTPUT -o wg0 -j ACCEPT
+  fi
 fi
 
 export SAP_URL="${SAP_SCHEME}://${SAP_IP}:${SAP_PORT}${SAP_PATH}"
@@ -56,7 +83,6 @@ if [ "${SAP_INSECURE:-false}" = "true" ]; then
   set -- "$@" --insecure
 fi
 
-# Block all write operations by default; set SAP_READ_ONLY=false to allow writes
 if [ "${SAP_READ_ONLY:-true}" = "true" ]; then
   set -- "$@" --read-only
 fi
