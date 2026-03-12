@@ -2,9 +2,19 @@
 set -eu
 
 # ─── Wireguard Tunnel ────────────────────────────────────────────────
-# If a Wireguard config is mounted, bring up the tunnel before anything else.
-# Mount the config as a volume: ./wg/wg0.conf:/etc/wireguard/wg0.conf:ro
+# Option A: Mount the config as a volume: ./wg/wg0.conf:/etc/wireguard/wg0.conf:ro
+# Option B: Set WG_CONF_B64 env var (base64-encoded wg0.conf contents)
+#           Generate with: base64 -w0 wg/wg0.conf
 WG_CONF="/etc/wireguard/wg0.conf"
+
+# Write WG config from env if not mounted
+if [ -n "${WG_CONF_B64:-}" ] && [ ! -f "$WG_CONF" ]; then
+  mkdir -p /etc/wireguard
+  echo "$WG_CONF_B64" | base64 -d > "$WG_CONF"
+  chmod 600 "$WG_CONF"
+  echo "[wireguard] Config written from WG_CONF_B64"
+fi
+
 if [ -f "$WG_CONF" ]; then
   echo "[wireguard] Config found at $WG_CONF — bringing up wg0..."
   wg-quick up wg0
