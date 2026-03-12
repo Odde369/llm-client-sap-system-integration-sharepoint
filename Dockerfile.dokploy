@@ -1,0 +1,2 @@
+FROM ghcr.io/danny-avila/librechat-dev-api:latest
+COPY config/librechat.enterprise.yaml /app/librechat.yaml
