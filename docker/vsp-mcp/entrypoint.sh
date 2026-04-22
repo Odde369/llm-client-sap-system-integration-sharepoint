@@ -17,6 +17,8 @@ fi
 
 if [ -f "$WG_CONF" ]; then
   echo "[wireguard] Config found at $WG_CONF — bringing up wg0..."
+  # Strip DNS line — resolvconf is not available; DNS is set manually below
+  sed -i '/^DNS[[:space:]]*=/d' "$WG_CONF"
   wg-quick up wg0
   if [ -n "${WG_DNS:-}" ]; then
     echo "nameserver $WG_DNS" > /etc/resolv.conf
