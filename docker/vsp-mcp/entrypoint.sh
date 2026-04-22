@@ -24,8 +24,8 @@ if [ -f "$WG_CONF" ]; then
     echo "nameserver $WG_DNS" > /etc/resolv.conf
     echo "[wireguard] DNS set to $WG_DNS"
   else
-    echo "nameserver 192.168.126.4" > /etc/resolv.conf
-    echo "[wireguard] DNS set to 192.168.126.4 (default)"
+    echo "nameserver 192.168.126.5" > /etc/resolv.conf
+    echo "[wireguard] DNS set to 192.168.126.5 (default)"
   fi
   echo "[wireguard] Tunnel active. Interface:"
   wg show wg0
