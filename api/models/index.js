@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const { createMethods } = require('@librechat/data-schemas');
 const methods = createMethods(mongoose);
 const { comparePassword } = require('./userMethods');
-const { seedBtpAdvisor } = require('./seedBtpAdvisor');
 const {
   getMessage,
   getMessages,
@@ -20,7 +19,6 @@ const seedDatabase = async () => {
   await methods.initializeRoles();
   await methods.seedDefaultRoles();
   await methods.ensureDefaultCategories();
-  await seedBtpAdvisor(mongoose);
 };
 
 module.exports = {
