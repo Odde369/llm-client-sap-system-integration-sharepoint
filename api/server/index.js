@@ -163,7 +163,8 @@ const startServer = async () => {
   app.use('/api/mcp', routes.mcp);
 
   app.use((err, req, res, next) => {
-    logger.error('ErrorController => stack trace:', err?.stack || err);
+    const frames = (err?.stack || String(err)).split('\n');
+    frames.forEach((line, i) => logger.error(`[TRACE:${i}] ${line}`));
     next(err);
   });
   app.use(ErrorController);
