@@ -4,22 +4,45 @@
 # What this adds:
 # - Local build of the api image (required for auth cookie + OBO token fixes)
 # - Config file mount (config/librechat.enterprise.yaml -> /app/librechat.yaml)
-# - MCP server dependencies and service definitions (sap-docs-mcp, vsp-mcp)
-# - Ollama LLM: runs natively on the host Mac; accessed via host.docker.internal:11434
+# - MCP server dependencies and service definitions
+# - Ollama LLM: runs natively on the host; accessed via host.docker.internal:11434
 
 services:
+
+  # ──────────────────────────────────────────────────────────
+  # LibreChat API (local build with enterprise auth patches)
+  # ──────────────────────────────────────────────────────────
+
   api:
     # Build locally so the auth cookie and OBO token fixes in api/ are applied.
-    # See docs/code-changes.md for details on what was patched and why.
+    # See docs/PROJECT.md for details on custom changes.
     build:
       context: .
       dockerfile: Dockerfile
-    image: librechat-mcp-sharepoint:local
+    image: librechat-enterprise:local
     depends_on:
-      - mongodb
-      - rag_api
-      - sap-docs-mcp
-      - vsp-mcp
+      mongodb:
+        condition: service_started
+      rag_api:
+        condition: service_started
+      sap-docs-mcp:
+        condition: service_started
+      vsp-mcp:
+        condition: service_started
+      # sap-mcp-proxy:
+      #   condition: service_healthy
+      btp-mcp:
+        condition: service_healthy
+      ollama-proxy:
+        condition: service_started
+      sandpack-bundler:
+        condition: service_started
+      ui5-mcp:
+        condition: service_started
+      fiori-mcp:
+        condition: service_started
+      cap-mcp:
+        condition: service_started
     volumes:
       - type: bind
         source: ./.env
@@ -30,9 +53,13 @@ services:
       - ./images:/app/client/public/images
       - ./uploads:/app/uploads
       - ./logs:/app/logs
+      - ./api/models:/app/api/models
 
-  # --- MCP Servers ---
+  # ──────────────────────────────────────────────────────────
+  # MCP Servers
+  # ──────────────────────────────────────────────────────────
 
+  # SAP Documentation Search (offline-first, opt-in online)
   sap-docs-mcp:
     container_name: sap-docs-mcp
     build:
@@ -43,13 +70,15 @@ services:
     environment:
       - MCP_HOST=0.0.0.0
       - MCP_PORT=3122
-      # Offline-only mode: online sources (SAP Help, Community, Software Heroes) are excluded
-      # from search by default. Users can still pass includeOnline=true per request to opt in.
+      # Offline-only mode: online sources excluded by default.
+      # Users can pass includeOnline=true per request to opt in.
       - MCP_INCLUDE_ONLINE_DEFAULT=false
     restart: unless-stopped
     ports:
       - "3124:3122"
 
+  # VSP single-system SAP connector (fallback for single-system setups)
+  # For multi-system access use sap-mcp-proxy instead.
   vsp-mcp:
     container_name: vsp-mcp
     build:
@@ -61,11 +90,137 @@ services:
       - SAP_USER=${SAP_TECH_USER}
       - SAP_PASSWORD=${SAP_TECH_PASSWORD}
       - SAP_CLIENT=${SAP_CLIENT}
-      - SAP_INSECURE=${SAP_INSECURE}
+      - SAP_INSECURE=${SAP_INSECURE:-false}
       - MCP_PROXY_PORT=3000
       - VSP_MODE=focused
       - SAP_READ_ONLY=true
-      - VSP_EXTRA_ARGS=--block-free-sql --transport-read-only --enable-transports --disabled-groups debugger,install,write,amdp
+      - VSP_EXTRA_ARGS=--transport-read-only --enable-transports
     restart: unless-stopped
     ports:
       - "3130:3000"
+
+  # Dynamic multi-system SAP proxy — routes to the correct S/4HANA system on demand.
+  # Hot-reloads systems.json without a container restart.
+  # The Eclipse plugin registers systems and sets the active system via REST:
+  #   POST /register-system   { id, label, url, client }
+  #   POST /set-current-system { id }
+  sap-mcp-proxy:
+    container_name: sap-mcp-proxy
+    build:
+      context: ./docker/sap-mcp-proxy
+    environment:
+      - MCP_PROXY_PORT=3000
+      - SYSTEMS_PATH=/app/systems.json
+      - VSP_IDLE_TIMEOUT_MS=${VSP_IDLE_TIMEOUT_MS:-600000}
+      # SAP credentials used as fallback when the Eclipse plugin registers a
+      # system without an explicit URL (destination-name-only registration).
+      - SAP_URL=${SAP_URL:-}
+      - SAP_CLIENT=${SAP_CLIENT:-001}
+      - SAP_TECH_USER=${SAP_TECH_USER:-}
+      - SAP_TECH_PASSWORD=${SAP_TECH_PASSWORD:-}
+      - SAP_INSECURE=${SAP_INSECURE:-false}
+    env_file:
+      - .env
+    volumes:
+      - type: bind
+        source: ./docker/sap-mcp-proxy/systems.json
+        target: /app/systems.json
+    restart: unless-stopped
+    ports:
+      - "3140:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # SAP BTP Management — global account, subaccounts, CF, entitlements, events
+  btp-mcp:
+    container_name: btp-mcp
+    build:
+      context: ./docker/btp-mcp
+    environment:
+      - PORT=4004
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "4004:4004"
+    volumes:
+      - btp-mcp-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4004/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ──────────────────────────────────────────────────────────
+  # Fiori / UI5 / CAP MCP Servers
+  # ──────────────────────────────────────────────────────────
+
+  # SAPUI5 framework: API reference, linter guidelines, TypeScript migration
+  ui5-mcp:
+    container_name: ui5-mcp
+    build:
+      context: ./docker/ui5-mcp
+    environment:
+      - PORT=3210
+    restart: unless-stopped
+    ports:
+      - "3210:3210"
+
+  # SAP Fiori: Fiori elements docs, app generation, OData integration guides
+  fiori-mcp:
+    container_name: fiori-mcp
+    build:
+      context: ./docker/fiori-mcp
+    environment:
+      - PORT=3211
+    restart: unless-stopped
+    ports:
+      - "3211:3211"
+
+  # SAP CAP: CDS model search, CAP framework documentation
+  cap-mcp:
+    container_name: cap-mcp
+    build:
+      context: ./docker/cap-mcp
+    environment:
+      - PORT=3212
+    restart: unless-stopped
+    ports:
+      - "3212:3212"
+
+  # ──────────────────────────────────────────────────────────
+  # Supporting Services
+  # ──────────────────────────────────────────────────────────
+
+  # Local Sandpack bundler mirror — avoids browser-side blocking of *.codesandbox.io
+  # in corporate networks. Version must match what is bundled in the LibreChat client build.
+  # Rebuild when the LibreChat client version changes.
+  sandpack-bundler:
+    container_name: sandpack-bundler
+    build:
+      context: ./docker/sandpack-bundler
+    restart: unless-stopped
+    ports:
+      - "3300:3300"
+
+  # Ollama proxy — normalizes text-format tool calls to proper tool_calls structure.
+  # Routes to UPSTREAM_BASE (Ollama Cloud or any OpenAI-compatible endpoint).
+  ollama-proxy:
+    container_name: ollama-proxy
+    build:
+      context: ./docker/ollama-proxy
+    environment:
+      # Forward all requests to Ollama Cloud (or swap to any OpenAI-compatible URL)
+      - UPSTREAM_BASE=https://ollama.com
+      - PORT=4010
+    restart: unless-stopped
+    ports:
+      - "4010:4010"
+
+volumes:
+  btp-mcp-data:

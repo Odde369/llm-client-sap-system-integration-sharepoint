@@ -92,6 +92,13 @@ src/style - official.css
 monospace.json
 .idea
 *.iml
+
+# Eclipse Plugin (Maven/Tycho)
+eclipse-plugin/target/
+eclipse-plugin/bin/
+eclipse-plugin/.p2/
+eclipse-plugin/*.hmap
+*.class
 *.pem
 config.local.ts
 **/storageState.json
@@ -151,7 +158,7 @@ claude-flow.config.json
 .swarm/
 .hive-mind/
 .claude-flow/
-memory/
+/memory/
 coordination/
 memory/claude-flow-data.json
 memory/sessions/*

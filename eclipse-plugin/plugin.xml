@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <!-- ═══════════════════════════════════════════
+        VIEW: LibreChat Browser Panel
+        ═══════════════════════════════════════════ -->
+   <extension point="org.eclipse.ui.views">
+      <category
+         id="com.advades.librechat.category"
+         name="LibreChat">
+      </category>
+      <view
+         id="com.advades.librechat.view"
+         name="LibreChat"
+         class="com.advades.librechat.views.LibreChatView"
+         category="com.advades.librechat.category"
+         icon="icons/librechat_16.png"
+         allowMultiple="false">
+      </view>
+   </extension>
+
+   <!-- ═══════════════════════════════════════════
+        COMMANDS
+        ═══════════════════════════════════════════ -->
+   <extension point="org.eclipse.ui.commands">
+      <command
+         id="com.advades.librechat.sendSelection"
+         name="Send Selection to LibreChat"
+         description="Sends the currently selected code with SAP context to LibreChat">
+      </command>
+      <command
+         id="com.advades.librechat.sendFile"
+         name="Send Current File to LibreChat"
+         description="Sends the entire current file with SAP context to LibreChat">
+      </command>
+      <command
+         id="com.advades.librechat.newSapChat"
+         name="New SAP Chat"
+         description="Starts a new LibreChat conversation with full SAP system context">
+      </command>
+      <command
+         id="com.advades.librechat.refreshContext"
+         name="Refresh SAP Context"
+         description="Force re-detection of the current SAP system context">
+      </command>
+   </extension>
+
+   <!-- ═══════════════════════════════════════════
+        HANDLERS
+        ═══════════════════════════════════════════ -->
+   <extension point="org.eclipse.ui.handlers">
+      <handler
+         commandId="com.advades.librechat.sendSelection"
+         class="com.advades.librechat.handlers.SendSelectionHandler">
+      </handler>
+      <handler
+         commandId="com.advades.librechat.sendFile"
+         class="com.advades.librechat.handlers.SendFileHandler">
+      </handler>
+      <handler
+         commandId="com.advades.librechat.newSapChat"
+         class="com.advades.librechat.handlers.NewSapChatHandler">
+      </handler>
+      <handler
+         commandId="com.advades.librechat.refreshContext"
+         class="com.advades.librechat.handlers.RefreshContextHandler">
+      </handler>
+   </extension>
+
+   <!-- ═══════════════════════════════════════════
+        KEYBINDINGS
+        ═══════════════════════════════════════════ -->
+   <extension point="org.eclipse.ui.bindings">
+      <key
+         commandId="com.advades.librechat.sendSelection"
+         schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+         sequence="M1+M2+L">
+      </key>
+      <key
+         commandId="com.advades.librechat.sendFile"
+         schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+         sequence="M1+M2+F">
+      </key>
+      <key
+         commandId="com.advades.librechat.newSapChat"
+         schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+         sequence="M1+M2+N">
+      </key>
+      <key
+         commandId="com.advades.librechat.refreshContext"
+         schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+         sequence="M1+M2+R">
+      </key>
+   </extension>
+
+   <!-- ═══════════════════════════════════════════
+        EDITOR CONTEXT MENU
+        ═══════════════════════════════════════════ -->
+   <extension point="org.eclipse.ui.menus">
+      <menuContribution locationURI="popup:org.eclipse.ui.popup.any">
+         <menu id="com.advades.librechat.menu" label="LibreChat">
+            <command
+               commandId="com.advades.librechat.sendSelection"
+               label="Send Selection to LibreChat"
+               style="push">
+            </command>
+            <command
+               commandId="com.advades.librechat.sendFile"
+               label="Send Current File to LibreChat"
+               style="push">
+            </command>
+            <separator name="com.advades.librechat.separator" visible="true"/>
+            <command
+               commandId="com.advades.librechat.newSapChat"
+               label="New SAP Chat"
+               style="push">
+            </command>
+         </menu>
+      </menuContribution>
+
+      <!-- Toolbar Buttons -->
+      <menuContribution locationURI="toolbar:org.eclipse.ui.main.toolbar">
+         <toolbar id="com.advades.librechat.toolbar" label="LibreChat">
+            <command
+               commandId="com.advades.librechat.sendSelection"
+               tooltip="Send Selection to LibreChat (Ctrl+Shift+L)">
+            </command>
+            <command
+               commandId="com.advades.librechat.newSapChat"
+               tooltip="New SAP Chat (Ctrl+Shift+N)">
+            </command>
+         </toolbar>
+      </menuContribution>
+   </extension>
+
+   <!-- ═══════════════════════════════════════════
+        PREFERENCES
+        ═══════════════════════════════════════════ -->
+   <extension point="org.eclipse.ui.preferencePages">
+      <page
+         id="com.advades.librechat.preferences"
+         name="LibreChat"
+         class="com.advades.librechat.preferences.SapSystemPreferencePage">
+      </page>
+   </extension>
+
+   <extension point="org.eclipse.core.runtime.preferences">
+      <initializer class="com.advades.librechat.preferences.PreferenceInitializer"/>
+   </extension>
+
+   <!-- ═══════════════════════════════════════════
+        STARTUP: Register EditorPartListener
+        ═══════════════════════════════════════════ -->
+   <extension point="org.eclipse.ui.startup">
+      <startup class="com.advades.librechat.EarlyStartup"/>
+   </extension>
+
+</plugin>

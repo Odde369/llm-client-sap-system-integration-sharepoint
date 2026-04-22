@@ -1,0 +1,63 @@
+{
+    "server": {
+      "name": "btp-mcp-server",
+      "version": "1.0.0",
+      "description": "BTP Landscape Management"
+    },
+    "apis": [
+      {
+        "name": "cis-accounts",
+        "destination": "BTP_ACCOUNTS_SERVICE",
+        "pathPrefix": "/accounts/v1",
+        "csrfProtected": false,
+        "entitySets": [
+          {
+            "entitySet": "subaccounts",
+            "urlPath": "subaccounts",
+            "category": "account-management",
+            "description": "BTP Subaccounts within the global account",
+            "keys": [
+              { "name": "guid", "type": "string" }
+            ],
+            "operations": {
+              "list": true,
+              "get": true,
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          {
+            "entitySet": "directories",
+            "urlPath": "directories",
+            "category": "account-management",
+            "description": "BTP Directories for organizing subaccounts",
+            "keys": [
+              { "name": "guid", "type": "string" }
+            ],
+            "operations": {
+              "list": true,
+              "get": true,
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          {
+            "entitySet": "globalAccount",
+            "urlPath": "globalAccount",
+            "category": "account-management",
+            "description": "BTP Global Account details and entitlements",
+            "keys": [],
+            "operations": {
+              "list": false,
+              "get": true,
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          }
+        ]
+      }
+    ]
+  }

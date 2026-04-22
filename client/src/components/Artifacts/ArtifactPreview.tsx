@@ -8,6 +8,7 @@ import type { TStartupConfig } from 'librechat-data-provider';
 import type { ArtifactFiles } from '~/common';
 import { sharedFiles, sharedOptions } from '~/utils/artifacts';
 
+
 export const ArtifactPreview = memo(function ({
   files,
   fileKey,
@@ -60,12 +61,14 @@ export const ArtifactPreview = memo(function ({
       {...sharedProps}
       template={template}
     >
-      <SandpackPreview
-        showOpenInCodeSandbox={false}
-        showRefreshButton={false}
-        tabIndex={0}
-        ref={previewRef}
-      />
+      <div className="relative h-full w-full">
+        <SandpackPreview
+          showOpenInCodeSandbox={false}
+          showRefreshButton={false}
+          tabIndex={0}
+          ref={previewRef}
+        />
+      </div>
     </SandpackProvider>
   );
 });

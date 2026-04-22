@@ -1,2 +1,15 @@
+# Dokploy deployment image.
+#
+# Extends the upstream LibreChat dev image with:
+#   1. Custom auth patches from api/ (Entra ID OBO token, session cookie fixes)
+#   2. Enterprise config baked in (no bind mount needed)
+#
+# For local development use the main Dockerfile instead (full rebuild, config bind-mounted).
+
 FROM ghcr.io/danny-avila/librechat-dev-api:latest
+
+# Apply custom API patches (Entra ID OBO token flow, session/cookie fixes)
+COPY --chown=node:node api/ /app/api/
+
+# Bake enterprise config into the image
 COPY config/librechat.enterprise.yaml /app/librechat.yaml

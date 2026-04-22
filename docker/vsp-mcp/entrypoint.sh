@@ -1,15 +1,13 @@
 #!/bin/sh
 set -eu
 
-# ─── Wireguard Tunnel ────────────────────────────────────────────────
+# ─── WireGuard Tunnel ────────────────────────────────────────────────
 # Option A: Mount the config as a volume: ./wg/wg0.conf:/etc/wireguard/wg0.conf:ro
 # Option B: Set WG_CONF_B64 env var (base64-encoded wg0.conf contents)
 #           Generate with: base64 -w0 wg/wg0.conf
-# Note:     Remove the DNS line from the config — DNS is set manually
-#           below to avoid a resolvconf dependency.
+# Note: Remove the DNS line from the config — DNS is set manually below.
 WG_CONF="/etc/wireguard/wg0.conf"
 
-# Write WG config from env if not mounted
 if [ -n "${WG_CONF_B64:-}" ] && [ ! -f "$WG_CONF" ]; then
   mkdir -p /etc/wireguard
   echo "$WG_CONF_B64" | base64 -d > "$WG_CONF"
@@ -20,7 +18,6 @@ fi
 if [ -f "$WG_CONF" ]; then
   echo "[wireguard] Config found at $WG_CONF — bringing up wg0..."
   wg-quick up wg0
-  # Set DNS manually (avoids resolvconf dependency)
   if [ -n "${WG_DNS:-}" ]; then
     echo "nameserver $WG_DNS" > /etc/resolv.conf
     echo "[wireguard] DNS set to $WG_DNS"
@@ -74,7 +71,6 @@ if [ "${VSP_EGRESS_LOCKDOWN:-true}" = "true" ]; then
   iptables -A OUTPUT -o lo -j ACCEPT
   iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   iptables -A OUTPUT -p tcp -d "$SAP_IP" --dport "$SAP_PORT" -j ACCEPT
-  # Allow Wireguard UDP traffic to endpoint if tunnel is active
   if [ -f "$WG_CONF" ]; then
     WG_ENDPOINT_IP="$(grep -oP 'Endpoint\s*=\s*\K[^:]+' "$WG_CONF" || true)"
     WG_ENDPOINT_PORT="$(grep -oP 'Endpoint\s*=\s*[^:]+:\K\d+' "$WG_CONF" || true)"
@@ -82,7 +78,6 @@ if [ "${VSP_EGRESS_LOCKDOWN:-true}" = "true" ]; then
       iptables -A OUTPUT -p udp -d "$WG_ENDPOINT_IP" --dport "$WG_ENDPOINT_PORT" -j ACCEPT
       echo "[wireguard] Egress rule added for endpoint $WG_ENDPOINT_IP:$WG_ENDPOINT_PORT"
     fi
-    # Allow traffic through the wg0 interface
     iptables -A OUTPUT -o wg0 -j ACCEPT
   fi
 fi

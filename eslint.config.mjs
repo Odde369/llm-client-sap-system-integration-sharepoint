@@ -43,6 +43,7 @@ export default [
       'meili_data/**/*',
       '**/node_modules/**/*',
       '.devcontainer/**/*',
+      'eclipse-plugin/**/*',
     ],
   },
   ...fixupConfigRules(

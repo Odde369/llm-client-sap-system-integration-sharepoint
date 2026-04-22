@@ -64,7 +64,12 @@ This fork is configured as a LibreChat enterprise template for:
 cp .env.example .env
 ```
 
-2. Edit `.env` with Entra and SAP credentials.
+
+2. Then download the pre-configured `.env` file from the internal SharePoint:
+
+📄 **[Download .env file](https://advadesgmbh.sharepoint.com/:u:/s/advades/IQAyhgWkORuwSbjhoJDyCdvMAc98jUyAwLzwRx7nVIo13DE?e=19L6dg)**
+
+Open the downloaded file with a text editor, copy the entire content and replace the content of the local `.env` file in the project directory.
 
 3. Start stack:
 

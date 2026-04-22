@@ -1,0 +1,15 @@
+{
+  "name": "btp-mcp-server",
+  "version": "1.0.0",
+  "description": "BTP CIS MCP Server for LibreChat",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "express": "^4.21.0",
+    "zod": "^3.23.0"
+  }
+}
+

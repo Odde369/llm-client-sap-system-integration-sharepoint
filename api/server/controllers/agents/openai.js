@@ -302,6 +302,7 @@ const OpenAIChatCompletionController = async (req, res) => {
       if (!text) {
         return;
       }
+      logger.debug(`[BTP-DEBUG] streamText called, length=${text.length}, hasArtifact=${text.includes(':::artifact')}, isStreaming=${isStreaming}`);
       if (isStreaming) {
         tracker.addText();
         writeSSE(res, createChunk(context, { content: text }));
@@ -340,6 +341,7 @@ const OpenAIChatCompletionController = async (req, res) => {
       // Text content streaming
       on_message_delta: createHandler((data) => {
         const content = data?.delta?.content;
+        logger.debug(`[BTP-DEBUG] on_message_delta: isArray=${Array.isArray(content)}, type=${typeof content}, len=${JSON.stringify(content)?.length}`);
         if (Array.isArray(content)) {
           for (const part of content) {
             if (part.type === 'text' && part.text) {

@@ -1,0 +1,36 @@
+FROM golang:1.24-bookworm AS vsp-build
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+ARG VSP_REPO=https://github.com/oisee/vibing-steampunk.git
+ARG VSP_REF=v2.25.0
+
+WORKDIR /src
+RUN git clone --depth 1 --branch ${VSP_REF} ${VSP_REPO} vibing-steampunk
+
+WORKDIR /src/vibing-steampunk
+RUN go build -o /out/vsp ./cmd/vsp
+
+FROM node:20-bookworm-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=vsp-build /out/vsp /usr/local/bin/vsp
+RUN chmod +x /usr/local/bin/vsp
+
+WORKDIR /app
+COPY package.json ./
+RUN npm install --omit=dev
+
+COPY index.js vsp-pool.js ./
+COPY systems.json ./systems.json
+
+ENV MCP_PROXY_PORT=3000
+
+EXPOSE 3000
+
+CMD ["node", "index.js"]

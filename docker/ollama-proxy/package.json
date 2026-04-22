@@ -1,0 +1,10 @@
+{
+  "name": "ollama-proxy",
+  "version": "1.0.0",
+  "description": "Transparent OpenAI API proxy that normalizes text-format tool calls to proper tool_calls structure",
+  "license": "MIT",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  }
+}

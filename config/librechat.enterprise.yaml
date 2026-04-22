@@ -21,8 +21,13 @@ mcpSettings:
   allowedDomains:
     - "sap-docs-mcp"
     - "vsp-mcp"
+    # - "sap-mcp-proxy"
     - "sap"
     - "docs"
+    - "btp-mcp"
+    - "ui5-mcp"
+    - "fiori-mcp"
+    - "cap-mcp"
 
 mcpServers:
   docs:
@@ -30,12 +35,59 @@ mcpServers:
     url: "http://sap-docs-mcp:3122/mcp"
     chatMenu: true
     startup: false
+    timeout: 3600000
 
   sap:
     type: streamable-http
     url: "http://vsp-mcp:3000/mcp"
     chatMenu: true
     startup: false
+    timeout: 3600000
+
+  # sap-multi:
+  #   type: streamable-http
+  #   url: "http://sap-mcp-proxy:3000/mcp"
+  #   title: "SAP Multi System"
+  #   description: "Dynamic SAP system access — supports multiple S/4HANA systems. Use sap_list_systems to see available systems, then sap_execute to run tools."
+  #   chatMenu: true
+  #   startup: false
+  #   timeout: 3600000
+
+  ui5-mcp:
+    type: streamable-http
+    url: "http://ui5-mcp:3210/mcp"
+    title: "SAPUI5"
+    description: "UI5 API-Referenz, Linter-Guidelines, TypeScript-Migration, Integration Cards, Manifest-Validierung"
+    chatMenu: true
+    startup: false
+    timeout: 3600000
+
+  fiori-mcp:
+    type: streamable-http
+    url: "http://fiori-mcp:3211/mcp"
+    title: "SAP Fiori"
+    description: "Fiori Elements Dokumentation, App-Generierung für CAP/OData, Seitenmanagement, Annotations"
+    chatMenu: true
+    startup: false
+    timeout: 3600000
+
+  cap-mcp:
+    type: streamable-http
+    url: "http://cap-mcp:3212/mcp"
+    title: "SAP CAP"
+    description: "CDS-Modell-Suche (Entities, Services, Annotations, Endpoints), CAP Framework Dokumentation"
+    chatMenu: true
+    startup: false
+    timeout: 3600000
+
+  btp-mcp:
+    type: streamable-http
+    url: http://btp-mcp:4004/mcp
+    title: "SAP BTP Management"
+    description: "SAP BTP Landscape: Global Account, Subaccounts, Directories, Entitlements, SaaS Subscriptions, Service Instances & Bindings, Cloud Foundry Orgs/Spaces/Apps/Routes/Processes/Env, Events"
+    chatMenu: true
+    startup: false
+    timeout: 3600000
 
 fileConfig:
   serverFileSizeLimit: 25
@@ -80,15 +132,24 @@ endpoints:
       promptPrefix: 'CRITICAL INSTRUCTION FOR TOOL CALLS: 1) JSON Types: If a parameter is a number, output it as a raw JSON number (e.g. 10), NEVER a string. 2) String Validation: Never pass ''null'' for string parameters; use an empty string ("") instead. 3) Tool Names: Use the EXACT tool names provided in the tool list (e.g. including the _mcp_ suffix). Failure to follow these rules will crash the system.'
     - name: "Ollama Cloud"
       apiKey: "${OLLAMA_CLOUD_API_KEY}"
-      baseURL: "https://ollama.com/v1"
+      # Routes through ollama-proxy which normalizes text-format tool calls
+      # (DeepSeek sometimes returns tool calls as plain text instead of tool_calls).
+      # The proxy forwards all headers (incl. Authorization) transparently to Ollama Cloud.
+      baseURL: "http://ollama-proxy:4010/v1"
       models:
         # fetch: true erst aktivieren, wenn OLLAMA_CLOUD_API_KEY gesetzt ist
         fetch: false
-        default: ["gpt-oss:120b", "deepseek-v3.1:671b-cloud"]
+        default: ["qwen3.5:397b", "gpt-oss:120b", "deepseek-v3.1:671b-cloud"]
+      dropInvalidParams: true
       titleConvo: true
       titleModel: "current_model"
       summarize: false
       forcePrompt: false
       modelDisplayLabel: "Ollama Cloud"
+      addParams:
+        tool_choice: "auto"
+        parallel_tool_calls: false
   agents:
     disableBuilder: false
+    recursionLimit: 100
+    maxRecursionLimit: 200

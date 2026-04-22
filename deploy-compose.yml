@@ -1,17 +1,22 @@
 services:
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile.dokploy
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.multi
+    #   target: api-build
+    image: ghcr.io/danny-avila/librechat-dev-api:latest
     container_name: LibreChat-API
+    ports:
+      - 3080:3080
     depends_on:
       - mongodb
       - rag_api
       - sap-docs-mcp
       - vsp-mcp
+      - btp-mcp
     restart: always
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+    - "host.docker.internal:host-gateway"
     env_file:
       - .env
     environment:
@@ -22,25 +27,39 @@ services:
       - RAG_PORT=${RAG_PORT:-8000}
       - RAG_API_URL=http://rag_api:${RAG_PORT:-8000}
     volumes:
+      - type: bind
+        source: ./config/librechat.enterprise.yaml
+        target: /app/librechat.yaml
       - ./images:/app/client/public/images
       - ./uploads:/app/uploads
       - ./logs:/app/api/logs
-    networks:
-      - dokploy-network
-      - default
 
+  client:
+    image: nginx:1.27.0-alpine
+    container_name: LibreChat-NGINX
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - api
+    restart: always
+    volumes:
+      - ./client/nginx.conf:/etc/nginx/conf.d/default.conf
   mongodb:
     container_name: chat-mongodb
+    # ports:  # Uncomment this to access mongodb from outside docker, not safe in deployment
+    #   - 27018:27017
     image: mongo:8.0.17
     restart: always
     volumes:
       - ./data-node:/data/db
     command: mongod --noauth
-
   meilisearch:
     container_name: chat-meilisearch
     image: getmeili/meilisearch:v1.12.3
     restart: always
+    # ports: # Uncomment this to access meilisearch from outside docker
+    #   - 7700:7700 # if exposing these ports, make sure your master key is not the default value
     env_file:
       - .env
     environment:
@@ -48,7 +67,6 @@ services:
       - MEILI_NO_ANALYTICS=true
     volumes:
       - ./meili_data_v1.12:/meili_data
-
   vectordb:
     image: pgvector/pgvector:0.8.0-pg15-trixie
     environment:
@@ -58,7 +76,6 @@ services:
     restart: always
     volumes:
       - pgdata2:/var/lib/postgresql/data
-
   rag_api:
     image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:latest
     environment:
@@ -75,10 +92,13 @@ services:
     build:
       context: ./docker/sap-docs-mcp
       args:
+        # Set to false to enable online sources (SAP Help, Community, Software Heroes) by default
         - SAP_DOCS_OFFLINE_MODE=${SAP_DOCS_OFFLINE_MODE:-true}
     environment:
       - MCP_HOST=0.0.0.0
       - MCP_PORT=3122
+      # Offline-only mode: online sources (SAP Help, Community, Software Heroes) are excluded
+      # from search by default. Users can still pass includeOnline=true per request to opt in.
       - MCP_INCLUDE_ONLINE_DEFAULT=false
     restart: unless-stopped
     ports:
@@ -90,8 +110,6 @@ services:
       context: ./docker/vsp-mcp
     cap_add:
       - NET_ADMIN
-    sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
     environment:
       - SAP_URL=${SAP_URL}
       - SAP_USER=${SAP_TECH_USER}
@@ -102,15 +120,21 @@ services:
       - VSP_MODE=focused
       - SAP_READ_ONLY=true
       - VSP_EXTRA_ARGS=--block-free-sql --transport-read-only --disabled-groups debugger
-    volumes:
-      - ./wg/wg0.conf:/etc/wireguard/wg0.conf:ro
     restart: unless-stopped
     ports:
       - 3130:3000
-
+      
+  btp-mcp:
+    container_name: btp-mcp
+    build:
+      context: ./docker/btp-mcp
+    environment:
+      - PORT=4004
+      - LOG_LEVEL=info
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "4004:4004"
 volumes:
   pgdata2:
-
-networks:
-  dokploy-network:
-    external: true

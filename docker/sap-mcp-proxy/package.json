@@ -1,0 +1,14 @@
+{
+  "name": "sap-mcp-proxy",
+  "version": "1.0.0",
+  "description": "Dynamic multi-system SAP MCP proxy — spawns vsp processes on demand per SAP system",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.23.0"
+  }
+}

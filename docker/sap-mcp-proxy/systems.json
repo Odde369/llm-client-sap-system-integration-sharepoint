@@ -1,0 +1,6 @@
+{
+  "$schema": "./systems.schema.json",
+  "_comment": "SAP system definitions — edit this file to add/remove systems. Changes are hot-reloaded (no container restart needed).",
+  "systems": {
+  }
+}

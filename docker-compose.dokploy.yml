@@ -1,0 +1,222 @@
+# Dokploy deployment compose file.
+#
+# Use this file in Dokploy (Docker Compose Stack) instead of docker-compose.yml.
+# All services are defined here — no override file needed.
+#
+# Key differences from local docker-compose.override.yml:
+#   - api uses Dockerfile.dokploy (pre-built image + patches, config baked in)
+#   - vsp-mcp uses WG_CONF_B64 for WireGuard VPN to reach SAP on-premise
+#   - No filesystem-mcp (local Eclipse workspace not available in cloud)
+#   - Named volumes for all persistent data
+#   - No bind mounts to host paths
+
+services:
+
+  # ──────────────────────────────────────────────────────────
+  # LibreChat API
+  # ──────────────────────────────────────────────────────────
+  api:
+    container_name: LibreChat
+    build:
+      context: .
+      dockerfile: Dockerfile.dokploy
+    image: librechat-enterprise-dokploy:latest
+    restart: always
+    ports:
+      - "${PORT:-3080}:${PORT:-3080}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mongodb:
+        condition: service_started
+      rag_api:
+        condition: service_started
+      sap-docs-mcp:
+        condition: service_started
+      vsp-mcp:
+        condition: service_started
+      btp-mcp:
+        condition: service_healthy
+      ollama-proxy:
+        condition: service_started
+      sandpack-bundler:
+        condition: service_started
+      ui5-mcp:
+        condition: service_started
+      fiori-mcp:
+        condition: service_started
+      cap-mcp:
+        condition: service_started
+    environment:
+      - HOST=0.0.0.0
+      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+      - MEILI_HOST=http://meilisearch:7700
+      - RAG_PORT=${RAG_PORT:-8000}
+      - RAG_API_URL=http://rag_api:${RAG_PORT:-8000}
+    env_file:
+      - .env
+    volumes:
+      - librechat-images:/app/client/public/images
+      - librechat-uploads:/app/uploads
+      - librechat-logs:/app/logs
+
+  # ──────────────────────────────────────────────────────────
+  # Core infrastructure
+  # ──────────────────────────────────────────────────────────
+  mongodb:
+    container_name: chat-mongodb
+    image: mongo:8.0.17
+    restart: always
+    volumes:
+      - mongodb-data:/data/db
+    command: mongod --noauth
+
+  meilisearch:
+    container_name: chat-meilisearch
+    image: getmeili/meilisearch:v1.12.3
+    restart: always
+    environment:
+      - MEILI_HOST=http://meilisearch:7700
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+    volumes:
+      - meilisearch-data:/meili_data
+
+  vectordb:
+    container_name: vectordb
+    image: pgvector/pgvector:0.8.0-pg15-trixie
+    restart: always
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  rag_api:
+    container_name: rag_api
+    image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:latest
+    restart: always
+    environment:
+      - DB_HOST=vectordb
+      - RAG_PORT=${RAG_PORT:-8000}
+    depends_on:
+      - vectordb
+    env_file:
+      - .env
+
+  # ──────────────────────────────────────────────────────────
+  # SAP MCP Servers
+  # ──────────────────────────────────────────────────────────
+
+  # SAP Documentation Search
+  sap-docs-mcp:
+    container_name: sap-docs-mcp
+    build:
+      context: ./docker/sap-docs-mcp
+      args:
+        - SAP_DOCS_OFFLINE_MODE=${SAP_DOCS_OFFLINE_MODE:-true}
+    environment:
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=3122
+      - MCP_INCLUDE_ONLINE_DEFAULT=false
+    restart: unless-stopped
+
+  # VSP single-system SAP connector with WireGuard VPN support
+  # WireGuard config is passed via WG_CONF_B64 (base64-encoded wg0.conf).
+  # Generate with: base64 -w0 wg/wg0.conf
+  vsp-mcp:
+    container_name: vsp-mcp
+    build:
+      context: ./docker/vsp-mcp
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - SAP_URL=${SAP_URL}
+      - SAP_USER=${SAP_TECH_USER}
+      - SAP_PASSWORD=${SAP_TECH_PASSWORD}
+      - SAP_CLIENT=${SAP_CLIENT}
+      - SAP_INSECURE=${SAP_INSECURE:-false}
+      - MCP_PROXY_PORT=3000
+      - VSP_MODE=focused
+      - SAP_READ_ONLY=true
+      - VSP_EXTRA_ARGS=--transport-read-only --enable-transports
+      - WG_CONF_B64=${WG_CONF_B64:-}
+      - WG_DNS=${WG_DNS:-}
+    restart: unless-stopped
+
+  # SAP BTP Management
+  btp-mcp:
+    container_name: btp-mcp
+    build:
+      context: ./docker/btp-mcp
+    environment:
+      - PORT=4004
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - btp-mcp-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4004/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ──────────────────────────────────────────────────────────
+  # Fiori / UI5 / CAP MCP Servers
+  # ──────────────────────────────────────────────────────────
+  ui5-mcp:
+    container_name: ui5-mcp
+    build:
+      context: ./docker/ui5-mcp
+    environment:
+      - PORT=3210
+    restart: unless-stopped
+
+  fiori-mcp:
+    container_name: fiori-mcp
+    build:
+      context: ./docker/fiori-mcp
+    environment:
+      - PORT=3211
+    restart: unless-stopped
+
+  cap-mcp:
+    container_name: cap-mcp
+    build:
+      context: ./docker/cap-mcp
+    environment:
+      - PORT=3212
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────────────────
+  # Supporting Services
+  # ──────────────────────────────────────────────────────────
+
+  # Local Sandpack bundler mirror
+  sandpack-bundler:
+    container_name: sandpack-bundler
+    build:
+      context: ./docker/sandpack-bundler
+    restart: unless-stopped
+
+  # Ollama proxy — normalizes text-format tool calls
+  ollama-proxy:
+    container_name: ollama-proxy
+    build:
+      context: ./docker/ollama-proxy
+    environment:
+      - UPSTREAM_BASE=https://ollama.com
+      - PORT=4010
+    restart: unless-stopped
+
+volumes:
+  mongodb-data:
+  meilisearch-data:
+  pgdata:
+  librechat-images:
+  librechat-uploads:
+  librechat-logs:
+  btp-mcp-data:
