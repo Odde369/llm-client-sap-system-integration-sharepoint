@@ -1,5 +1,17 @@
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 const { GLOBAL_PROJECT_NAME } = require('librechat-data-provider').Constants;
-const { Project } = require('~/db/models');
+
+const projectSchema = new Schema(
+  {
+    name: { type: String, required: true, index: true },
+    promptGroupIds: { type: [Schema.Types.ObjectId], ref: 'PromptGroup', default: [] },
+    agentIds: { type: [String], ref: 'Agent', default: [] },
+  },
+  { timestamps: true },
+);
+
+const Project = mongoose.models.Project || mongoose.model('Project', projectSchema);
 
 /**
  * Retrieve a project by ID and convert the found project document to a plain object.
