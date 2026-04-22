@@ -143,6 +143,8 @@ services:
       - VSP_EXTRA_ARGS=--transport-read-only --enable-transports
       - WG_CONF_B64=${WG_CONF_B64:-}
       - WG_DNS=${WG_DNS:-}
+    env_file:
+      - .env
     restart: unless-stopped
 
   # SAP BTP Management
