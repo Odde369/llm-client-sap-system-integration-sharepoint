@@ -162,6 +162,10 @@ const startServer = async () => {
   app.use('/api/tags', routes.tags);
   app.use('/api/mcp', routes.mcp);
 
+  app.use((err, req, res, next) => {
+    logger.error('ErrorController => stack trace:', err?.stack || err);
+    next(err);
+  });
   app.use(ErrorController);
 
   app.use((req, res) => {
