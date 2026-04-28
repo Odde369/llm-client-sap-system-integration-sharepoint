@@ -23,7 +23,6 @@ const domains = {
 };
 
 router.use(logHeaders);
-router.use(loginLimiter);
 
 const oauthHandler = createOAuthHandler();
 
@@ -50,6 +49,7 @@ router.get(
 
 router.get(
   '/google/callback',
+  loginLimiter,
   passport.authenticate('google', {
     failureRedirect: `${domains.client}/oauth/error`,
     failureMessage: true,
@@ -75,6 +75,7 @@ router.get(
 
 router.get(
   '/facebook/callback',
+  loginLimiter,
   passport.authenticate('facebook', {
     failureRedirect: `${domains.client}/oauth/error`,
     failureMessage: true,
@@ -99,6 +100,7 @@ router.get('/openid', (req, res, next) => {
 
 router.get(
   '/openid/callback',
+  loginLimiter,
   passport.authenticate('openid', {
     failureRedirect: `${domains.client}/oauth/error`,
     failureMessage: true,
@@ -122,6 +124,7 @@ router.get(
 
 router.get(
   '/github/callback',
+  loginLimiter,
   passport.authenticate('github', {
     failureRedirect: `${domains.client}/oauth/error`,
     failureMessage: true,
@@ -146,6 +149,7 @@ router.get(
 
 router.get(
   '/discord/callback',
+  loginLimiter,
   passport.authenticate('discord', {
     failureRedirect: `${domains.client}/oauth/error`,
     failureMessage: true,
@@ -169,6 +173,7 @@ router.get(
 
 router.post(
   '/apple/callback',
+  loginLimiter,
   passport.authenticate('apple', {
     failureRedirect: `${domains.client}/oauth/error`,
     failureMessage: true,
@@ -191,6 +196,7 @@ router.get(
 
 router.post(
   '/saml/callback',
+  loginLimiter,
   passport.authenticate('saml', {
     failureRedirect: `${domains.client}/oauth/error`,
     failureMessage: true,
